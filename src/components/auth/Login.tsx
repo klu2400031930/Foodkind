@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { ArrowLeft, Eye, EyeOff, Heart, Mail, Phone, Lock } from 'lucide-react';
+import { useState, useEffect, useRef } from 'react';
+import { ArrowLeft, Eye, EyeOff, Heart, Mail, Phone, Lock, RefreshCw } from 'lucide-react';
 import { UserRole } from '../../App';
 
 interface LoginProps {
@@ -20,6 +20,60 @@ export function Login({ role, onLoginSuccess, onSignupClick, onBack }: LoginProp
   const [otpSent, setOtpSent] = useState(false);
   const [countdown, setCountdown] = useState(0);
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
+
+  // CAPTCHA State
+  const [captchaCode, setCaptchaCode] = useState('');
+  const [userCaptchaInput, setUserCaptchaInput] = useState('');
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  const generateCaptcha = () => {
+    const chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+    let code = '';
+    for (let i = 0; i < 6; i++) {
+      code += chars[Math.floor(Math.random() * chars.length)];
+    }
+    setCaptchaCode(code);
+    setUserCaptchaInput(''); // Clear input on refresh
+  };
+
+  const drawCaptcha = () => {
+    const canvas = canvasRef.current;
+    if (canvas) {
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+        // Background
+        ctx.fillStyle = '#f3f4f6';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        // Text
+        ctx.font = 'bold 24px monospace';
+        ctx.fillStyle = '#374151';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Add some noise/lines
+        for (let i = 0; i < 5; i++) {
+          ctx.strokeStyle = `rgba(0,0,0,${Math.random() * 0.2})`;
+          ctx.beginPath();
+          ctx.moveTo(Math.random() * canvas.width, Math.random() * canvas.height);
+          ctx.lineTo(Math.random() * canvas.width, Math.random() * canvas.height);
+          ctx.stroke();
+        }
+
+        ctx.fillText(captchaCode, canvas.width / 2, canvas.height / 2);
+      }
+    }
+  };
+
+  useEffect(() => {
+    generateCaptcha();
+  }, []);
+
+  useEffect(() => {
+    drawCaptcha();
+  }, [captchaCode]);
 
   const getRoleInfo = () => {
     switch (role) {
@@ -69,6 +123,10 @@ export function Login({ role, onLoginSuccess, onSignupClick, onBack }: LoginProp
       if (otpSent && otp.some(digit => !digit)) {
         newErrors.otp = 'Please enter complete OTP';
       }
+    }
+
+    if (userCaptchaInput !== captchaCode) {
+      newErrors.captcha = 'Incorrect CAPTCHA code';
     }
 
     setErrors(newErrors);
@@ -179,8 +237,8 @@ export function Login({ role, onLoginSuccess, onSignupClick, onBack }: LoginProp
             <button
               onClick={() => setLoginMethod('email')}
               className={`flex-1 py-3 rounded-lg transition-all ${loginMethod === 'email'
-                  ? 'bg-white text-[#21A179] shadow-sm'
-                  : 'text-[#555555]'
+                ? 'bg-white text-[#21A179] shadow-sm'
+                : 'text-[#555555]'
                 }`}
               style={{ fontWeight: '600' }}
             >
@@ -189,8 +247,8 @@ export function Login({ role, onLoginSuccess, onSignupClick, onBack }: LoginProp
             <button
               onClick={() => setLoginMethod('phone')}
               className={`flex-1 py-3 rounded-lg transition-all ${loginMethod === 'phone'
-                  ? 'bg-white text-[#21A179] shadow-sm'
-                  : 'text-[#555555]'
+                ? 'bg-white text-[#21A179] shadow-sm'
+                : 'text-[#555555]'
                 }`}
               style={{ fontWeight: '600' }}
             >
@@ -235,8 +293,8 @@ export function Login({ role, onLoginSuccess, onSignupClick, onBack }: LoginProp
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="your.email@example.com"
                     className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all ${errors.email
-                        ? 'border-[#FF4A4A] bg-[#FFF5F5]'
-                        : 'border-[#F2F2F2] focus:border-[#21A179]'
+                      ? 'border-[#FF4A4A] bg-[#FFF5F5]'
+                      : 'border-[#F2F2F2] focus:border-[#21A179]'
                       }`}
                   />
                 </div>
@@ -260,8 +318,8 @@ export function Login({ role, onLoginSuccess, onSignupClick, onBack }: LoginProp
                     placeholder="1234567890"
                     maxLength={10}
                     className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:outline-none transition-all ${errors.phone
-                        ? 'border-[#FF4A4A] bg-[#FFF5F5]'
-                        : 'border-[#F2F2F2] focus:border-[#21A179]'
+                      ? 'border-[#FF4A4A] bg-[#FFF5F5]'
+                      : 'border-[#F2F2F2] focus:border-[#21A179]'
                       }`}
                   />
                 </div>
@@ -287,8 +345,8 @@ export function Login({ role, onLoginSuccess, onSignupClick, onBack }: LoginProp
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Enter your password"
                     className={`w-full pl-12 pr-12 py-3 border-2 rounded-xl focus:outline-none transition-all ${errors.password
-                        ? 'border-[#FF4A4A] bg-[#FFF5F5]'
-                        : 'border-[#F2F2F2] focus:border-[#21A179]'
+                      ? 'border-[#FF4A4A] bg-[#FFF5F5]'
+                      : 'border-[#F2F2F2] focus:border-[#21A179]'
                       }`}
                   />
                   <button
@@ -336,8 +394,8 @@ export function Login({ role, onLoginSuccess, onSignupClick, onBack }: LoginProp
                           onChange={(e) => handleOTPChange(index, e.target.value)}
                           maxLength={1}
                           className={`w-12 h-12 text-center border-2 rounded-xl focus:outline-none transition-all ${errors.otp
-                              ? 'border-[#FF4A4A] bg-[#FFF5F5]'
-                              : 'border-[#F2F2F2] focus:border-[#21A179]'
+                            ? 'border-[#FF4A4A] bg-[#FFF5F5]'
+                            : 'border-[#F2F2F2] focus:border-[#21A179]'
                             }`}
                           style={{ fontSize: '20px', fontWeight: '700' }}
                         />
@@ -368,6 +426,44 @@ export function Login({ role, onLoginSuccess, onSignupClick, onBack }: LoginProp
                 )}
               </div>
             )}
+
+            {/* CAPTCHA Section */}
+            <div className="bg-gray-50 p-4 rounded-xl border border-gray-200">
+              <label className="block text-[#1A1A1A] mb-2" style={{ fontSize: '14px', fontWeight: '600' }}>
+                Verify you are human
+              </label>
+              <div className="flex items-center gap-4 mb-3">
+                <canvas
+                  ref={canvasRef}
+                  width="160"
+                  height="50"
+                  className="border border-gray-300 rounded-lg bg-white"
+                />
+                <button
+                  type="button"
+                  onClick={generateCaptcha}
+                  className="p-2 text-[#555555] hover:text-[#21A179] transition-colors"
+                  title="Refresh CAPTCHA"
+                >
+                  <RefreshCw className="w-5 h-5" />
+                </button>
+              </div>
+              <input
+                type="text"
+                value={userCaptchaInput}
+                onChange={(e) => setUserCaptchaInput(e.target.value)}
+                placeholder="Enter characters above"
+                className={`w-full px-4 py-3 border-2 rounded-xl focus:outline-none transition-all ${errors.captcha
+                    ? 'border-[#FF4A4A] bg-[#FFF5F5]'
+                    : 'border-[#F2F2F2] focus:border-[#21A179]'
+                  }`}
+              />
+              {errors.captcha && (
+                <p className="text-[#FF4A4A] mt-1" style={{ fontSize: '12px' }}>
+                  {errors.captcha}
+                </p>
+              )}
+            </div>
 
             {/* Submit Button */}
             {(!useOTP || otpSent) && (
